@@ -1,0 +1,12 @@
+{
+  "name": "getup-simulador",
+  "private": true,
+  "description": "Simulador de funil comercial por unidade da rede Getup Boutique Gym",
+  "scripts": {
+    "dev": "wrangler pages dev public --kv CENARIOS",
+    "deploy": "wrangler pages deploy public --project-name getup-simulador"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
