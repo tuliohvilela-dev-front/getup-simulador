@@ -1,0 +1,2 @@
+# getup-simulador
+Simulador franqueado
