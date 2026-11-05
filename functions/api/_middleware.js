@@ -15,7 +15,10 @@ export async function onRequest({ request, env, next }) {
   }
 
   try {
-    return await next();
+    const resp = await next();
+    const r = new Response(resp.body, resp);
+    r.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return r;
   } catch (e) {
     return json({ erro: "Erro inesperado no servidor.", detalhe: String(e && e.message || e) }, 500);
   }
