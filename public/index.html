@@ -175,11 +175,18 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 .big-field small{color:var(--muted);font-size:13px}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.mini div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.mini.four{grid-template-columns:repeat(4,1fr)}
+.mini > div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
 .mini span{display:block;font-size:12px;color:var(--muted);font-weight:600}
 .mini b{font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums}
-.mini div:last-child{border-color:color-mix(in srgb,var(--good) 45%,transparent)}
-.mini div:last-child b{color:var(--good)}
+.mini small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.mini > div:last-child{border-color:color-mix(in srgb,var(--good) 45%,transparent)}
+.mini > div:last-child b{color:var(--good)}
+.mini > .conv{border-color:var(--sand);background:color-mix(in srgb,var(--sand) 8%,var(--surface))}
+.conv-in{display:flex;align-items:baseline;gap:2px}
+.conv-in input{width:100%;min-width:0;background:transparent;border:0;border-bottom:2px dashed color-mix(in srgb,var(--sand) 55%,transparent);font-family:var(--display);font-weight:700;font-size:26px;color:var(--sand);padding:0;outline:none;font-variant-numeric:tabular-nums}
+.conv-in input:focus{border-bottom-color:var(--sand)}
+.conv-in em{font-style:normal;font-family:var(--display);font-weight:700;color:var(--sand);font-size:18px}
 .sentence{font-size:17px;margin:0;color:var(--fg)}
 .sentence b{color:var(--sand);font-variant-numeric:tabular-nums}
 .dotrow{display:flex;gap:6px;flex-wrap:wrap}
@@ -199,7 +206,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 .reveal .sub{color:var(--muted);font-size:16px}
 .name-in{background:transparent;border:0;border-bottom:2px dashed var(--line);font:inherit;color:var(--sand);width:100%;padding:0;outline:none}
 .name-in:focus{border-bottom-color:var(--sand)}
-@media (max-width:520px){.mini{grid-template-columns:1fr 1fr 1fr}.mini b{font-size:20px}}
+@media (max-width:520px){.mini{grid-template-columns:1fr 1fr 1fr}.mini.four{grid-template-columns:1fr 1fr}.mini b,.conv-in input{font-size:20px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -706,7 +713,12 @@ function renderStep(){
       ${bigField({id:"wTax",label:"Imposto sobre o investimento",value:f.imposto||0,dec:1,unit:"%",help:"Descontado antes de virar mídia"})}</div>
       <p class="sentence" id="wTaxFrase"></p>
       ${bigField({id:"wAg",label:"De cada 100 leads, quantos marcam aula?",value:f.agenda,unit:"%",range:true,max:100,step:1,stepper:true})}
-      <div class="mini"><div><span>Aulas marcadas</span><b id="wA">0</b></div><div><span>Comparecidos</span><b id="wC">0</b></div><div><span>Matrículas</span><b id="wM">0</b></div></div>
+      <div class="mini four">
+        <div><span>Aulas marcadas</span><b id="wA">0</b><small id="wAs"></small></div>
+        <div><span>Comparecidos</span><b id="wC">0</b><small id="wCs"></small></div>
+        <div class="conv"><label for="wConv"><span>Taxa de conversão</span></label><div class="conv-in"><input id="wConv" type="text" inputmode="decimal" value="${fmtIn(S.fecha,1)}"><em>%</em></div><small>comparecido → matrícula</small></div>
+        <div><span>Matrículas</span><b id="wM">0</b><small id="wMs"></small></div>
+      </div>
       <button id="wSkip" class="btn ghost" type="button" style="align-self:flex-start">Esta unidade não usa essa fonte</button>`;
     const syncInv = () => { if(document.activeElement !== $("wInv")) $("wInv").value = fmtIn(gross(f),0); };
     $("wFn").addEventListener("input", e => { f.nome = e.target.value; const n = $("n"+i); if(n) n.value = f.nome; fillGapSelect(); changed(); });
@@ -715,6 +727,8 @@ function renderStep(){
     bindNum("wInv", ()=>gross(f), v=>{ if(f.cpl>0){ f.leads=Math.round(leadsFrom(f,v)); $("wLeads").value=fmtIn(f.leads,0); const r=$("wLeadsR"); if(f.leads>+r.max) r.max=Math.ceil(f.leads*1.5); r.value=f.leads; paintRange(r);} }, 0);
     bindNum("wAg", ()=>f.agenda, v=>f.agenda=Math.min(100,v), 1);
     bindNum("wTax", ()=>f.imposto||0, v=>{ const inv = gross(f); f.imposto = Math.min(99,v); if(f.cpl>0){ f.leads = Math.round(leadsFrom(f,inv)); $("wLeads").value = fmtIn(f.leads,0); const r=$("wLeadsR"); if(f.leads>+r.max) r.max=Math.ceil(f.leads*1.5); r.value=f.leads; paintRange(r);} }, 1);
+    $("wConv").addEventListener("input", e => { S.fecha = Math.min(100, parse(e.target.value)); $("fecha").value = fmtIn(S.fecha,2); syncRanges(); changed(); wizLive(); });
+    $("wConv").addEventListener("blur", e => e.target.value = fmtIn(S.fecha,1));
     $("wSkip").addEventListener("click", () => { f.leads = 0; changed(); go(1); });
   }
   else {
@@ -741,7 +755,11 @@ function wizLive(){
     $("wTaxaDots").innerHTML = `<div class="dotrow" aria-hidden="true">${Array.from({length:10},(_,j)=>`<i class="${j<win?"win":j<shownC?"on":""}"></i>`).join("")}</div>`;
   }
   if(k && k.startsWith("f") && $("wM")){ const r = rows[+k.slice(1)];
-    $("wTaxFrase").innerHTML = r.tax ? `<b>${brl(Math.round(r.inv))}</b> investidos − <b>${brl(Math.round(r.tax))}</b> de imposto = <b>${brl(Math.round(r.midia))}</b> em mídia ÷ ${brl(r.f.cpl)} por lead = <b>${nf0.format(r.f.leads)}</b> leads` : ""; put($("wA"), nf0.format(r.aulas)); put($("wC"), nf0.format(r.comp)); put($("wM"), nf1.format(r.mat)); }
+    $("wTaxFrase").innerHTML = r.tax ? `<b>${brl(Math.round(r.inv))}</b> investidos − <b>${brl(Math.round(r.tax))}</b> de imposto = <b>${brl(Math.round(r.midia))}</b> em mídia ÷ ${brl(r.f.cpl)} por lead = <b>${nf0.format(r.f.leads)}</b> leads` : ""; put($("wA"), nf0.format(r.aulas)); put($("wC"), nf0.format(r.comp)); put($("wM"), nf1.format(r.mat));
+    $("wAs").textContent = pct(r.f.agenda) + " dos leads";
+    $("wCs").textContent = pct(S.comparece) + " das aulas";
+    put($("wMs"), "lead → matrícula: " + new Intl.NumberFormat("pt-BR",{maximumFractionDigits:2}).format(r.conv*100) + "%");
+    if(document.activeElement !== $("wConv")) $("wConv").value = fmtIn(S.fecha,1); }
   wizMeter(T);
 }
 function wizMeter(T){
